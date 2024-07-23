@@ -1,42 +1,38 @@
 # Multi-node serving of llama3.1 on Lambda Labs 1cc
 
+Serving Meta 3.1 405B requires to run a Ray cluster across multiple nodes.
+Ensure you have access to all the nodes you want to use for the Ray cluster.
+You'll choose one of the nodes as the head node and the rest as worker nodes.
 
-Hop onto cluster:
-```bash
-ssh -i ~/.ssh/ml.pem -F ~/.ssh/config.d/config.ml-512 ml-512-node-061
-ssh -i ~/.ssh/ml.pem -F ~/.ssh/config.d/config.ml-512 ml-512-node-062
-ssh -i ~/.ssh/ml.pem -F ~/.ssh/config.d/config.ml-512 ml-512-node-063
-ssh -i ~/.ssh/ml.pem -F ~/.ssh/config.d/config.ml-512 ml-512-node-064
-```
-
+The cluster setup script and the model weights will be downloaded to a shared storage across nodes.
+Cluster setup script will be ran on each node to start the Ray cluster.
+In this example, the terminal running the Ray cluster setup script for each node needs to remain open for the duration of the serving.
 
 ## Setup environment on each node
 
 Setup environment variables on each node:
-- `HF_HOME`
-- `HF_TOKEN`
-- `HEAD_IP`
+- `HEAD_IP` is the IP address of the 1cc node that you choose as head node for the ray cluster
+- `SHARED_DIR` is the path to the shared storage across nodes
+- `HF_HOME` is the path for Hugging Face storage
+- `HF_TOKEN` is the Hugging Face API token with access to the model to be downloaded
 ```bash
-export HEAD_IP=172.26.135.124
-export HF_HOME=/home/ubuntu/ml-1cc/eole/.cache/huggingface
-export HF_TOKEN=<...>
+export HEAD_IP=... # eg: 172.26.135.124
+export SHARED_DIR=/home/ubuntu/shared
+export HF_HOME=${SHARED_DIR}/.cache/huggingface
+export MODEL_REPO=meta-llama/Meta-Llama-3.1-405B-Instruct
+export HF_TOKEN=... # eg : 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
 ```
 
-Download HF model to local storage shared across nodes
+Download HF model to local storage, shared across cluster nodes
 ```bash
-mkdir -p /home/ubuntu/ml-1cc/eole/.cache/huggingface
+mkdir -p ${HF_HOME}
 huggingface-cli login --token ${HF_TOKEN}
-huggingface-cli download meta-llama/llama-3-1
+huggingface-cli download ${MODEL_REPO}
 ```
-huggingface-cli download meta-llama/Meta-Llama-3-70B-Instruct
-
-
-*Note: model local path for serving later is like `/home/ubuntu/ml-1cc/eole/.cache/huggingface/hub/models--meta-llama/llama-3-1/snapshots/607a30d783dfa663caf39e06633721c8d4cfcd7e`.*
 
 Download cluster setup scripts  to local storage shared across nodes
 ```bash
-mkdir -p /home/ubuntu/ml-1cc/eole/cwd/
-curl -o /home/ubuntu/ml-1cc/eole/cwd/run_cluster.sh https://raw.githubusercontent.com/vllm-project/vllm/main/examples/run_cluster.sh
+curl -o ${SHARED_DIR}/run_cluster.sh https://raw.githubusercontent.com/vllm-project/vllm/main/examples/run_cluster.sh
 ```
 
 ## Run cluster
@@ -99,14 +95,14 @@ Demands:
 
 Then serve the model from any node as if all the GPUs were accessible from that node
 ```bash
-# export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-70B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c'
+export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
 vllm serve ${MODEL_PATH_IN_CONTAINER} \
     --tensor-parallel-size 8 \
     --pipeline-parallel-size 4
 ```
-common configuration:
-* set `tensor-parallel-size` to the number of GPUs in each node
-* set `pipeline-parallel-size` to the number of nodes
+common practice is to set:
+* `tensor-parallel-size` to the number of GPUs in each node
+* `pipeline-parallel-size` to the number of nodes
 
 Success:
 ```
@@ -118,14 +114,12 @@ INFO 07-23 09:20:47 metrics.py:295] Avg prompt throughput: 0.0 tokens/s, Avg gen
 
 Download a test inference script from vllm to a local directory, then run from the model serving node:
 ```bash
-TEST_SCRIPT_PATH='/home/ubuntu/ml-1cc/eole/cwd/inference_test.py'
-TEST_SCRIPT_URL='https://raw.githubusercontent.com/vllm-project/vllm/main/examples/openai_chat_completion_client.py'
-curl -o ${TEST_SCRIPT_PATH} ${TEST_SCRIPT_URL}
-python3 /home/ubuntu/ml-1cc/eole/cwd/inference_test.py
+curl -o ${SHARED_DIR}/inference_test.py 'https://raw.githubusercontent.com/vllm-project/vllm/main/examples/openai_chat_completion_client.py'
+python3 ${SHARED_DIR}/inference_test.py
 ```
 
 Success:
 ```
 Chat completion results:
-ChatCompletion(id='cmpl-f5871c90353b44d8b2c1c7bf5ff4415d', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='The 2020 World Series was played at Globe Life Field in Arlington, Texas. It was a neutral-site series, meaning that neither team had home-field advantage, due to the COVID-19 pandemic.', role='assistant', function_call=None, tool_calls=[]), stop_reason=None)], created=1721725755, model='/root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3-70B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c', object='chat.completion', service_tier=None, system_fingerprint=None, usage=CompletionUsage(completion_tokens=42, prompt_tokens=59, total_tokens=101))
+ChatCompletion(id='cmpl-0b7b5ebafc464dc29bcc825c60953993', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='The 2020 World Series was played at Globe Life Field in Arlington, Texas. Due to the COVID-19 pandemic, the series was played at a neutral site, and Globe Life Field was chosen as the host stadium.', role='assistant', function_call=None, tool_calls=[]), stop_reason=None)], created=1721746113, model='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct', object='chat.completion', service_tier=None, system_fingerprint=None, usage=CompletionUsage(completion_tokens=46, prompt_tokens=59, total_tokens=105))
 ```
