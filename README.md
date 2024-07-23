@@ -1,17 +1,24 @@
 # Multi-node serving of llama3.1 on Lambda Labs 1cc
 
-Serving Meta 3.1 405B requires to run a Ray cluster across multiple nodes.
-Ensure you have access to all the nodes you want to use for the Ray cluster.
+Serving Meta llama3.1 (405B) requires to run a Ray cluster on at least two nodes of your 1cc cluster (eg: 2x 8xH100 per deployment).  
 You'll choose one of the nodes as the head node and the rest as worker nodes.
 
-The cluster setup script and the model weights will be downloaded to a shared storage across nodes.
-Cluster setup script will be ran on each node to start the Ray cluster.
-In this example, the terminal running the Ray cluster setup script for each node needs to remain open for the duration of the serving.
+First, ensure you have ssh access to all of the nodes you want to use for serving.
+For example:
+```bash
+ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node00
+ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node01
+ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node02
+ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node03
+ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node04
+```
+All of the nodes should have access to a shared storage that we will use to store the model weights as well as the cluster setup script.
+
 
 ## Setup environment on each node
 
-Setup environment variables on each node:
-- `HEAD_IP` is the IP address of the 1cc node that you choose as head node for the ray cluster
+Setup some environment variables on each node:
+- `HEAD_IP` is the IP address of the node that you choose as head node for the ray cluster
 - `SHARED_DIR` is the path to the shared storage across nodes
 - `HF_HOME` is the path for Hugging Face storage
 - `HF_TOKEN` is the Hugging Face API token with access to the model to be downloaded
@@ -23,14 +30,15 @@ export MODEL_REPO=meta-llama/Meta-Llama-3.1-405B-Instruct
 export HF_TOKEN=... # eg : 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
 ```
 
-Download HF model to local storage, shared across cluster nodes
+Download HF model to local storage, shared across cluster nodes.  
+This step assumes you have created a HuggingFace token with access to the model to be downloaded.
 ```bash
 mkdir -p ${HF_HOME}
 huggingface-cli login --token ${HF_TOKEN}
 huggingface-cli download ${MODEL_REPO}
 ```
 
-Download cluster setup scripts  to local storage shared across nodes
+Download cluster setup scripts to local storage shared across nodes
 ```bash
 curl -o ${SHARED_DIR}/run_cluster.sh https://raw.githubusercontent.com/vllm-project/vllm/main/examples/run_cluster.sh
 ```
@@ -62,8 +70,9 @@ cd /home/ubuntu/ml-1cc/eole/cwd
 
 ## Serve model
 
-On any node use `docker exec -it node /bin/bash` to enter container. Then check the cluster status with:
-```
+On any node use `docker exec -it node /bin/bash` to enter container.  
+Then check the cluster status with:
+```bash
 ray status
 ```
 *You should see the right number of nodes and GPUs. For example:*
@@ -93,7 +102,7 @@ Demands:
  (no resource demands)
 ```
 
-Then serve the model from any node as if all the GPUs were accessible from that node
+Then, serve the model from any node as if all the GPUs in the ray cluster were accessible from that node
 ```bash
 export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
 vllm serve ${MODEL_PATH_IN_CONTAINER} \
@@ -108,6 +117,13 @@ Success:
 ```
 ...
 INFO 07-23 09:20:47 metrics.py:295] Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Swapped: 0 reqs, Pending: 0 reqs, GPU KV cache usage: 0.0%, CPU KV cache usage: 0.0%.
+```
+
+Alternatively, you can also run distributed serving without pipeline parallel, using a tensor parallel size equal to the total number of GPUs in the ray cluster.
+```bash
+export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
+vllm serve ${MODEL_PATH_IN_CONTAINER} \
+    --tensor-parallel-size 32
 ```
 
 ## Test serving
