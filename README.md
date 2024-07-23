@@ -1,6 +1,6 @@
-# Multi-node serving of llama3.1 on Lambda Labs 1cc
+# Multi-node serving of Meta Llama 3.1 on Lambda Labs 1cc
 
-Serving Meta llama3.1 (405B) requires to run a Ray cluster on at least two nodes of your 1cc cluster (eg: 2x 8xH100 per deployment). You'll choose one of the nodes as the head node and the rest as worker nodes.
+Serving Meta Llama 3.1 (405B) requires running a Ray cluster on at least two nodes of your 1cc cluster (e.g., 2x 8xH100 per model deployment). You'll choose one of the nodes as the head node and the rest as worker nodes.
 
 First, ensure you have ssh access to all of the nodes you want to use for serving.
 For example:
@@ -30,7 +30,7 @@ export HF_TOKEN=... # eg : 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
 ```
 
 Download HF model to local storage, shared across cluster nodes.  
-This step assumes you have created a HuggingFace token with access to the model to be downloaded.
+This assumes you have created a Hugging Face token with access to the model.
 ```bash
 mkdir -p ${HF_HOME}
 huggingface-cli login --token ${HF_TOKEN}
@@ -46,8 +46,7 @@ curl -o ${SHARED_DIR}/run_cluster.sh https://raw.githubusercontent.com/vllm-proj
 
 The `run_cluster.sh` script should be ran on each node with the appropriate arguments. The script will start the Ray cluster on the head node and connect the worker nodes to it. The terminal sessions need to remain open for the duration of the serving.
 
-On head node:
-*Note: Ignoring infiniband argument for now*
+Run on the head node:
 ```bash
 cd /home/ubuntu/ml-1cc/eole/cwd
 /bin/bash run_cluster.sh \
@@ -58,7 +57,7 @@ cd /home/ubuntu/ml-1cc/eole/cwd
     --privileged -e NCCL_IB_HCA=mlx5
 ```
 
-On worker nodes:
+Run on each worker node:
 ```bash
 cd /home/ubuntu/ml-1cc/eole/cwd
 /bin/bash run_cluster.sh \
@@ -71,8 +70,9 @@ cd /home/ubuntu/ml-1cc/eole/cwd
 
 ## Serve model
 
-On any node use `docker exec -it node /bin/bash` to enter container.  
-Then check the cluster status with:
+On any node use `docker exec -it node /bin/bash` to enter container.
+
+Then, check the cluster status with:
 ```bash
 ray status
 ```
@@ -103,24 +103,23 @@ Demands:
  (no resource demands)
 ```
 
-Then, serve the model from any node as if all the GPUs in the ray cluster were accessible from that node
+Then, serve the model from any node as if all the GPUs in the Ray cluster were accessible from that node:
 ```bash
 export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
 vllm serve ${MODEL_PATH_IN_CONTAINER} \
     --tensor-parallel-size 8 \
     --pipeline-parallel-size 4
 ```
-common practice is to set:
+Common practice is to set:
 * `tensor-parallel-size` to the number of GPUs in each node
 * `pipeline-parallel-size` to the number of nodes
 
 Success:
 ```
-...
 INFO 07-23 09:20:47 metrics.py:295] Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Swapped: 0 reqs, Pending: 0 reqs, GPU KV cache usage: 0.0%, CPU KV cache usage: 0.0%.
 ```
 
-Alternatively, you can also run distributed serving without pipeline parallel, using a tensor parallel size equal to the total number of GPUs in the ray cluster.
+Alternatively, you can also run distributed serving without pipeline parallel, using a `tensor-parallel-size` equal to the total number of GPUs in the ray cluster.
 ```bash
 export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
 vllm serve ${MODEL_PATH_IN_CONTAINER} \
