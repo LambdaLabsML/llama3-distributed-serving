@@ -102,7 +102,8 @@ Demands:
 
 Then, serve the model from any node as if all the GPUs in the Ray cluster were accessible from that node:
 ```bash
-export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
+export MODEL_PATH_IN_CONTAINER="" # e.g.: 'root/.cache/huggingface/hub/models--meta-llama--Meta-Llama-3.1-405B-Instruct/snapshots/7129260dd854a80eb10ace5f61c20324b472b31c'
+
 vllm serve ${MODEL_PATH_IN_CONTAINER} \
     --tensor-parallel-size 8 \
     --pipeline-parallel-size 4
