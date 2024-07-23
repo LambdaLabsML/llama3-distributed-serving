@@ -48,8 +48,7 @@ The `run_cluster.sh` script should be ran on each node with the appropriate argu
 
 Run on the head node:
 ```bash
-cd /home/ubuntu/ml-1cc/eole/cwd
-/bin/bash run_cluster.sh \
+/bin/bash {SHARED_DIR}/run_cluster.sh \
     vllm/vllm-openai \
     ${HEAD_IP} \
     --head \
@@ -59,8 +58,7 @@ cd /home/ubuntu/ml-1cc/eole/cwd
 
 Run on each worker node:
 ```bash
-cd /home/ubuntu/ml-1cc/eole/cwd
-/bin/bash run_cluster.sh \
+/bin/bash {SHARED_DIR}/run_cluster.sh \
     vllm/vllm-openai \
     ${HEAD_IP} \
     --worker \
