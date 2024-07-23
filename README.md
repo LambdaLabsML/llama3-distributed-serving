@@ -55,7 +55,8 @@ cd /home/ubuntu/ml-1cc/eole/cwd
     vllm/vllm-openai \
     ${HEAD_IP} \
     --head \
-    ${HF_HOME}
+    ${HF_HOME} \
+    --privileged -e NCCL_IB_HCA=mlx5
 ```
 
 On worker nodes:
@@ -65,7 +66,8 @@ cd /home/ubuntu/ml-1cc/eole/cwd
     vllm/vllm-openai \
     ${HEAD_IP} \
     --worker \
-    ${HF_HOME}
+    ${HF_HOME} \
+    --privileged -e NCCL_IB_HCA=mlx5
 ```
 
 ## Serve model
@@ -128,7 +130,7 @@ vllm serve ${MODEL_PATH_IN_CONTAINER} \
 
 ## Test serving
 
-Download a test inference script from vllm to a local directory, then run from the model serving node:
+From the model serving node, run a test inference script to check if the model is serving correctly.
 ```bash
 curl -o ${SHARED_DIR}/inference_test.py 'https://raw.githubusercontent.com/vllm-project/vllm/main/examples/openai_chat_completion_client.py'
 python3 ${SHARED_DIR}/inference_test.py
