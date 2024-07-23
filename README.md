@@ -117,13 +117,6 @@ Success:
 INFO 07-23 09:20:47 metrics.py:295] Avg prompt throughput: 0.0 tokens/s, Avg generation throughput: 0.0 tokens/s, Running: 0 reqs, Swapped: 0 reqs, Pending: 0 reqs, GPU KV cache usage: 0.0%, CPU KV cache usage: 0.0%.
 ```
 
-Alternatively, you can also run distributed serving without pipeline parallel, using a `tensor-parallel-size` equal to the total number of GPUs in the ray cluster.
-```bash
-export MODEL_PATH_IN_CONTAINER='/root/.cache/huggingface/hub/Meta-Llama-3.1-405B-Instruct'
-vllm serve ${MODEL_PATH_IN_CONTAINER} \
-    --tensor-parallel-size 32
-```
-
 ## Test serving
 
 From the model serving node, run a test inference script to check if the model is serving correctly.
