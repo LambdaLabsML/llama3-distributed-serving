@@ -1,6 +1,8 @@
-# Multi-node serving of Meta Llama 3.1 on Lambda Labs 1cc
+# Multi-node serving of Llama 3.1 405B on Lambda Labs 1cc
 
-Serving Meta Llama 3.1 (405B) requires running a Ray cluster on at least two nodes of your 1cc cluster (e.g., 2x 8xH100 per model deployment). You'll choose one of the nodes as the head node and the rest as worker nodes.
+Serving Llama 3.1 405B model without quantization can be done with 16xH100 or 16xA100 GPUs using vLLM’s pipeline parallelism on Lambda 1cc.
+
+It requires running a Ray cluster on 1cc. You'll choose one of the nodes as the head node and the rest as worker nodes.
 
 First, ensure you have ssh access to all of the nodes you want to use for serving.
 For example:
