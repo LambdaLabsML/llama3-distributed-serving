@@ -1,6 +1,6 @@
 # Multi-node serving of Llama 3.1 405B on Lambda Labs 1cc
 
-Serving Llama 3.1 405B model without quantization can be done with 16xH100 GPUs using vLLM’s pipeline parallelism on Lambda 1cc.
+Serving Llama 3.1 405B model without quantization can be done with 16xH100 GPUs using vLLM’s pipeline parallelism on Lambda 1cc. This guide is based on vLLM's awesome [Llama 3.1 Support tutorial](https://blog.vllm.ai/2024/07/23/llama31.html)
 
 It requires running a Ray cluster on 1cc. You'll choose one of the nodes as the head node and the rest as worker nodes.
 
@@ -9,9 +9,6 @@ For example:
 ```bash
 ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node00
 ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node01
-ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node02
-ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node03
-ssh -i ~/.ssh/<your_key> -F ~/.ssh/config.d/cluster-config node04
 ```
 All of the nodes should have access to a shared storage that we will use to store the model weights as well as the cluster setup script.
 
