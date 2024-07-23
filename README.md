@@ -1,7 +1,6 @@
 # Multi-node serving of llama3.1 on Lambda Labs 1cc
 
-Serving Meta llama3.1 (405B) requires to run a Ray cluster on at least two nodes of your 1cc cluster (eg: 2x 8xH100 per deployment).  
-You'll choose one of the nodes as the head node and the rest as worker nodes.
+Serving Meta llama3.1 (405B) requires to run a Ray cluster on at least two nodes of your 1cc cluster (eg: 2x 8xH100 per deployment). You'll choose one of the nodes as the head node and the rest as worker nodes.
 
 First, ensure you have ssh access to all of the nodes you want to use for serving.
 For example:
