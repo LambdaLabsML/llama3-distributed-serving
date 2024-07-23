@@ -48,7 +48,7 @@ The `run_cluster.sh` script should be ran on each node with the appropriate argu
 
 Run on the head node:
 ```bash
-/bin/bash {SHARED_DIR}/run_cluster.sh \
+/bin/bash ${SHARED_DIR}/run_cluster.sh \
     vllm/vllm-openai \
     ${HEAD_IP} \
     --head \
@@ -58,7 +58,7 @@ Run on the head node:
 
 Run on each worker node:
 ```bash
-/bin/bash {SHARED_DIR}/run_cluster.sh \
+/bin/bash ${SHARED_DIR}/run_cluster.sh \
     vllm/vllm-openai \
     ${HEAD_IP} \
     --worker \
